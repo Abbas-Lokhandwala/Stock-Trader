@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Bought
+{% endblock %}
+
+{% block main %}
+    <p>{{ cart.name }} ({{ cart.symbol }}) shares cost <b>{{ '${:,.2f}'.format(cart.price) }}</b> each. You have purchased {{ shares }} shares for <b>{{ '${:,.2f}'.format(total) }}</b>.</p>
+    <p>You have <b>{{ '${:,.2f}'.format(updated_cash) }}</b> left in your account.</p>
+    <p>Go back to <a href="/">homescreen</a>.</p>
+{% endblock %}

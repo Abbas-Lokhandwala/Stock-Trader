@@ -1,0 +1,19 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Buy
+{% endblock %}
+
+{% block main %}
+    <p>Your current cash: <b>{{ '${:,.2f}'.format(cash) }}</b> for username <b>{{ username }}</b>.</p>
+    <form action="/buy" method="post">
+        <p>The current date is: <b>{{ date }}</b></p>
+        <div class="form-group">
+            <input type="text" class="form-control" name="symbol" id="symbol" placeholder="Enter Symbol">
+        </div>
+        <div class="form-group">
+            <input type="number" class="form-control" name="shares" id="shares" placeholder="Enter quantity">
+        </div>
+        <button class="btn btn-primary" type="submit">Buy</button>
+    </form>
+{% endblock %}

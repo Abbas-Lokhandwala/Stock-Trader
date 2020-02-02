@@ -1,0 +1,24 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sell
+{% endblock %}
+
+{% block main %}
+    <form action="/sell" method="post">
+        <p>The current date/time is: <b>{{ date }}</b> and your current cash is: <b>{{ '${:,.2f}'.format(cash) }}</b></p>
+        <div class="form-group">
+        <label for="sel1">Sell stocks of:</label>
+            <select class="form-control" name="symbol" id="sel1">
+                {% for symbol in symbols %}
+                    <option>{{ symbol }}</option>
+                {% endfor %}
+            </select>
+        </div>
+        <div class="form-group">
+            <input type="number" class="form-control" name="shares" id="shares" placeholder="Enter quantity">
+        </div>
+        <button class="btn btn-primary" type="submit">Sell</button>
+    </form>
+
+{% endblock %}

@@ -1,0 +1,10 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Quoted
+{% endblock %}
+
+{% block main %}
+    <p>{{ quote.name }} ({{ quote.symbol }}) shares cost <b>{{ '${:,.2f}'.format(quote.price) }}</b> each.</p>
+    <p>Go back to <a href="/">homescreen</a>.</p>
+{% endblock %}

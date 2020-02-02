@@ -1,0 +1,11 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Sold
+{% endblock %}
+
+{% block main %}
+    <p>You sold {{ -shares }} {{ symbol }} stock(s) for <b>{{ '${:,.2f}'.format(-total_sold) }}</b>.</p>
+    <p>Go back to <a href="/">homescreen</a>.</p>
+    <p>{{total}}</p>
+{% endblock %}
