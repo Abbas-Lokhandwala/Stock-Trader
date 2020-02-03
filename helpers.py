@@ -1,5 +1,6 @@
 import requests
 import urllib.parse
+import config
 
 from flask import redirect, render_template, request, session
 from functools import wraps
@@ -37,9 +38,11 @@ def login_required(f):
 def lookup(symbol):
     """Look up quote for symbol."""
 
+    token = config.access_token
+
     # Contact API
     try:
-        response = requests.get(f"https://api.iextrading.com/1.0/stock/{urllib.parse.quote_plus(symbol)}/quote")
+        response = requests.get(f"https://cloud.iexapis.com/v1/stock/{urllib.parse.quote_plus(symbol)}/quote?{token}")
         response.raise_for_status()
     except requests.RequestException:
         return None
