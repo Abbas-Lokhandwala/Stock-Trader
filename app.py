@@ -41,18 +41,19 @@ db = SQL("sqlite:///finance.db")
 @login_required
 def index():
     userid = session["user_id"]
-    username = db.execute("SELECT username FROM users WHERE id = :userid", userid=userid)[0]['username']
+    result = db.execute("SELECT username, name, cash FROM users WHERE id = :userid", userid=userid)[0]
+    username = result['username']
+    name = result['name']
     rows = db.execute("SELECT * FROM transactions WHERE user = :username", username=username)
-    cash = db.execute("SELECT cash FROM users WHERE username = :username", username=username)[0]['cash']
+    cash = result['cash']
 
     symbols = set()
     symbol_sets =set()
-    symbols_name = {}
-    api = {}
-    prices = {}
-    number = {}
-    total_cost = {}
-    total = list()
+    total = 0
+    value = 0
+
+    details = {}
+    
 
     # Create set of uniqe symbols in portfolio
     for row in rows:
@@ -67,30 +68,33 @@ def index():
     for symbol in symbols:
 
         # Count total number of shares of each symbol and add to count dictionary
-        count = db.execute("SELECT sum(shares) FROM transactions WHERE symbol = :symbol AND user = :username",
-                            username=username, symbol=symbol)[0]['sum(shares)']
+        result = db.execute("SELECT (SUM(PRICE*SHARES) / SUM(SHARES)) AS avg_cost, SUM(SHARES) AS total_shares FROM transactions WHERE user=:username and symbol=:symbol",
+                            username=username, symbol=symbol)[0]
 
-        number.update({symbol:count})
+        count = result['total_shares']
+        avg_cost = result['avg_cost']
 
         # Lookup the price and name of each stock symbol from stock API
-        api.update(lookup(symbol))
+        api = lookup(symbol)
 
-        # Add price to price dictionary
-        prices.update({api['symbol']:api['price']})
+        detail = {
+            'name':api['name'],
+            'price':api['price'],
+            'avg_cost':avg_cost,
+            'shares': count,
+            'total_cost': avg_cost*count,
+            'profit': (api['price']-avg_cost)*count
+        }
 
-        # Add name to name dictionary
-        symbols_name.update({symbol:api['name']})
+        details[symbol] = detail
 
-        # Calculate total stock value of assets and add to total cost dictionary
-        sum_total = count * prices[symbol]
-        total_cost.update({symbol:sum_total})
-        total.append(sum_total)
+        total += (api['price']*count)
 
     # Calculate total value of stock portfolio
-    total = cash + sum(total)
+    total += cash
+    value = total - 20000 
 
-    return render_template("index.html", total_cost=total_cost, symbols=symbols, number=number, cash=cash, total=total,
-                            prices=prices, username=username, symbols_name=symbols_name)
+    return render_template("index.html", symbols=symbols, cash=cash, total=total, name=name, value=value, details=details)
 
 
 @app.route("/buy", methods=["GET", "POST"])
@@ -98,10 +102,11 @@ def index():
 def buy():
 
     userid = session["user_id"]
-    username = db.execute("SELECT username FROM users WHERE id = :userid", userid=userid)[0]['username']
+    result = db.execute("SELECT username, name FROM users WHERE id = :userid", userid=userid)[0]
+    username = result['username']
+    name = result['name']
     cash = db.execute("SELECT cash FROM users WHERE id = :userid", userid=userid)[0]['cash']
-    now = datetime.datetime.now()
-    date = now.strftime("%Y-%m-%d %H:%M")
+    date = datetime.datetime.now().strftime("%Y-%m-%d %H:%M")
 
     if request.method == "POST":
 
@@ -113,11 +118,11 @@ def buy():
         name = str(cart['name'])
         shares = request.form.get("shares")
         if not shares:
-            shares = 0
+            return apology("Invalid number of shares", 400)
 
-        if shares.isnumeric() == False:
+        if not shares.isnumeric():
             return apology("Please enter a numeric number of shares.", 400)
-        elif float(shares) < 1 or float(shares) % float(shares) != 0:
+        elif float(shares) < 1:
             return apology("Please enter a valid number of shares.", 400)
 
         price = cart['price']
@@ -137,7 +142,7 @@ def buy():
             return apology("Sorry, you don't have enough cash to buy that.", 403)
 
     else:
-        return render_template("buy.html", cash=cash, date=date, username=username)
+        return render_template("buy.html", cash=cash, date=date, username=username, name=name)
 
 
 @app.route("/check", methods=["GET"])
@@ -151,25 +156,27 @@ def check():
 
     for row in rows:
         if username == row['username']:
-            return jsonify("false")
+            return jsonify("true")
 
-    return jsonify("true")
+    return jsonify("false")
 
 
 @app.route("/history")
 @login_required
 def history():
     userid = session["user_id"]
-    username = db.execute("SELECT username FROM users WHERE id = :userid", userid=userid)[0]['username']
+    result = db.execute("SELECT username, name FROM users WHERE id = :userid", userid=userid)[0]
+    username = result['username']
+    name = result['name']
     rows = db.execute("SELECT * FROM transactions WHERE user = :username", username=username)
     cash = db.execute("SELECT cash FROM users WHERE username = :username", username=username)[0]['cash']
     total = None
 
     if not rows:
-        return render_template("history.html", username=username, rows=rows, cash=cash, total=total)
+        return render_template("history.html", username=username, rows=rows, cash=cash, total=total, name=name)
 
     total = (db.execute("SELECT sum(total) FROM transactions WHERE user = :username", username=username)[0]['sum(total)']) + cash
-    return render_template("history.html", username=username, rows=rows, cash=cash, total=total)
+    return render_template("history.html", username=username, rows=rows, cash=cash, total=total, name=name)
 
 
 @app.route("/login", methods=["GET", "POST"])
@@ -225,18 +232,17 @@ def logout():
 def quote():
     if request.method == "POST":
         symbol = request.form.get("symbol")
-        quantity = 1
 
         if not symbol or symbol.isalpha() == False:
             return apology("Invalid stock symbol.", 400)
 
         else:
-            symbol = symbol.upper();
+            symbol = symbol.upper()
             quote = lookup(str(symbol))
             if not quote:
                 return apology("Invalid stock symbol.", 400)
             total = float(quote['price'])
-            return render_template("quoted.html", quote=quote, total=total, quantity=quantity)
+            return render_template("quoted.html", quote=quote, total=total)
 
     else:
         return render_template("quote.html")
@@ -244,12 +250,14 @@ def quote():
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
-    username = request.form.get("username")
-    password = request.form.get("password")
-    hashed = generate_password_hash(str(password))
-    check = request.form.get("confirmation")
-
     if request.method == "POST":
+        
+        name = request.form.get("name")
+        username = request.form.get("username")
+        password = request.form.get("password")
+        hashed = generate_password_hash(str(password))
+        check = request.form.get("confirmation")
+
         if not username:
             return apology("You forgot to enter a username!", 400)
         elif not password:
@@ -258,8 +266,10 @@ def register():
             return apology("You forgot to re-enter your password!", 400)
         elif password != check:
             return apology("Your passwords do not match.", 400)
+        elif not name:
+            return apology("You forgot to enter Name", 400)
 
-        result = db.execute("INSERT INTO users (username, hash) VALUES(:username, :hashed)", username=username, hashed=hashed)
+        result = db.execute("INSERT INTO users (username, hash, name) VALUES(:username, :hashed, :name)", username=username, hashed=hashed, name=name)
         if not result:
             return apology("Sorry, that username already exists.", 400)
 
@@ -267,11 +277,10 @@ def register():
                           username=username)
 
         session["user_id"] = rows[0]["id"]
+        return login()
 
     else:
         return render_template("register.html")
-
-    return login()
 
 
 

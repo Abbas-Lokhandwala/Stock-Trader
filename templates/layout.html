@@ -25,13 +25,13 @@
         <script type='text/javascript' src='config.js'></script>
         <script type='text/javascript' src='script.js'></script>
 
-        <title>C$50 Finance: {% block title %}{% endblock %}</title>
+        <title>Stock-Trader: {% block title %}{% endblock %}</title>
 
     </head>
 
-    <body>
+    <body class="bg-dark">  
 
-        <nav class="navbar navbar-expand-md navbar-light bg-light border">
+        <nav class="navbar navbar-expand-md navbar-dark bg-secondary border">
             <a class="navbar-brand" href="/"><span class="blue">C</span><span class="red">$</span><span class="yellow">5</span><span class="green">0</span> <span class="red">Finance</span></a>
             <button aria-controls="navbar" aria-expanded="false" aria-label="Toggle navigation" class="navbar-toggler" data-target="#navbar" data-toggle="collapse" type="button">
                 <span class="navbar-toggler-icon"></span>
@@ -67,10 +67,6 @@
         <main class="container p-5">
             {% block main %}{% endblock %}
         </main>
-
-        <footer class="small text-center text-muted">
-            Data provided for free by <a href="https://iextrading.com/developer">IEX</a>. View <a href="https://iextrading.com/api-exhibit-a/">IEX’s Terms of Use</a>.
-        </footer>
 
     </body>
 

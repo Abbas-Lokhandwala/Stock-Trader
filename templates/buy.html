@@ -5,7 +5,7 @@
 {% endblock %}
 
 {% block main %}
-    <p>Your current cash: <b>{{ '${:,.2f}'.format(cash) }}</b> for username <b>{{ username }}</b>.</p>
+    <p><b>{{ name }}</b>, Your current cash: <b>{{ cash | usd }}</b>.</p>
     <form action="/buy" method="post">
         <p>The current date is: <b>{{ date }}</b></p>
         <div class="form-group">

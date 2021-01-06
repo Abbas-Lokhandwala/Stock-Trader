@@ -6,7 +6,7 @@
 
 {% block main %}
     <form action="/sell" method="post">
-        <p>The current date/time is: <b>{{ date }}</b> and your current cash is: <b>{{ '${:,.2f}'.format(cash) }}</b></p>
+        <p>The current date/time is: <b>{{ date }}</b> and your current cash is: <b>{{ cash | usd }}</b></p>
         <div class="form-group">
         <label for="sel1">Sell stocks of:</label>
             <select class="form-control" name="symbol" id="sel1">
