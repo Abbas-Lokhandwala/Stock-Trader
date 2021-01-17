@@ -6,7 +6,7 @@
 
 {% block main %}
     <h3>Transaction History for <b>{{ name }}</b></h3>
-    <table id="loaded" class="table table-striped table-bordered order-column">
+    <table id="loaded" class="table table-dark">
         <thead>
             <tr>
                 <th>Date</th>
@@ -20,7 +20,7 @@
         </thead>
         <tbody>
             {% for row in rows %}
-                <tr>
+                <tr class="bg-dark">
                     <td>{{ row['date'] }}</td>
                     <td>{{ row["type"] }}</td>
                     <td>{{ row["symbol"] }}</td>

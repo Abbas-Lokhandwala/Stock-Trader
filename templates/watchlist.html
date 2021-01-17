@@ -1,0 +1,14 @@
+{% extends "layout.html" %}
+
+{% block title %}
+    Watchlist
+{% endblock %}
+
+{% block main %}
+    <form action="/list" method="post">
+        <div class="form-group">
+            <input type="text" class="form-control" name="symbol" id="symbol" placeholder="Enter Symbol">
+        </div>
+        <button class="btn btn-primary" type="submit">Add To Watchlist</button>
+    </form>
+{% endblock %}

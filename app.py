@@ -248,6 +248,80 @@ def quote():
         return render_template("quote.html")
 
 
+
+@app.route("/watchlist", methods=["GET", "POST"])
+@login_required
+def watchlist():
+    if request.method == "POST":
+        symbol = request.form.get("symbol")
+
+        if not symbol or symbol.isalpha() == False:
+            return apology("Invalid stock symbol.", 400)
+
+        else:
+            symbol = symbol.upper()
+            quote = lookup(str(symbol))
+            if not quote:
+                return apology("Invalid stock symbol.", 400)
+            total = float(quote['price'])
+            return render_template("list.html", quote=quote, total=total)
+
+    else:
+        return render_template("watchlist.html")
+
+
+
+@app.route("/list")
+@login_required
+def list():
+    userid = session["user_id"]
+    result = db.execute("SELECT username FROM Watchlist WHERE id = :userid", userid=userid)[0]
+    username = result['username']
+    rows = db.execute("SELECT * FROM Watchlist WHERE user = :username", username=username)
+
+    symbols = set()
+    symbol_sets =set()
+
+    for row in rows:
+        symbol_sets.add(row['symbol'])
+
+    details = {}
+    
+
+    # Create set of uniqe symbols in portfolio
+    for row in rows:
+        symbol_sets.add(row['symbol'])
+
+
+    
+        # Lookup the price and name of each stock symbol from stock API
+        api = lookup(symbol)
+
+        detail = {
+            'name':api['name'],
+            'price':api['price'],
+            'avg_cost':avg_cost,
+            'shares': count,
+            'total_cost': avg_cost*count,
+            'profit': (api['price']-avg_cost)*count
+        }
+
+        details[symbol] = detail
+
+        total += (api['price']*count)
+
+    # Calculate total value of stock portfolio
+    total += cash
+    value = total - 20000 
+
+    return render_template("list.html", symbols=symbols, cash=cash, total=total, username=username, name=name, value=value, details=details)
+
+
+
+
+
+
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
