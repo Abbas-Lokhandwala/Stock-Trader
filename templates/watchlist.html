@@ -5,10 +5,35 @@
 {% endblock %}
 
 {% block main %}
-    <form action="/list" method="post">
+    <form action="/watchlist" method="post">
         <div class="form-group">
             <input type="text" class="form-control" name="symbol" id="symbol" placeholder="Enter Symbol">
         </div>
         <button class="btn btn-primary" type="submit">Add To Watchlist</button>
     </form>
+<table id="loaded" class="table table-dark">
+    <thead>
+        <tr>
+            <th scope="col">Symbol</th>
+            <th scope="col">Name</th>
+            <th scope="col">Current Price</th>
+        </tr>
+    </thead>
+    <tbody>
+        {% for symbol in symbols %}
+            <tr class="bg-dark">
+                <td scope="row">{{symbol}}</td>
+                <td>{{details[symbol]['name']}}</td>
+                <td>{{details[symbol]['price'] | usd }}</td>
+            </tr>
+        {% endfor %}
+    </tbody>
+    
+</table>
+
+<script>
+    $(document).ready(function() {
+        $('#loaded').DataTable();
+    } );
+</script>
 {% endblock %}

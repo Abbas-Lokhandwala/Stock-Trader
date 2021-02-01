@@ -10,13 +10,13 @@ from werkzeug.security import check_password_hash, generate_password_hash
 
 from helpers import apology, login_required, lookup, usd
 
-# Configure application
+
 app = Flask(__name__)
 
-# Ensure templates are auto-reloaded
+
 app.config["TEMPLATES_AUTO_RELOAD"] = True
 
-# Ensure responses aren't cached
+
 @app.after_request
 def after_request(response):
     response.headers["Cache-Control"] = "no-cache, no-store, must-revalidate"
@@ -24,16 +24,16 @@ def after_request(response):
     response.headers["Pragma"] = "no-cache"
     return response
 
-# Custom filter
+
 app.jinja_env.filters["usd"] = usd
 
-# Configure session to use filesystem (instead of signed cookies)
+
 app.config["SESSION_FILE_DIR"] = mkdtemp()
 app.config["SESSION_PERMANENT"] = False
 app.config["SESSION_TYPE"] = "filesystem"
 Session(app)
 
-# Configure CS50 Library to use SQLite database
+
 db = SQL("sqlite:///finance.db")
 
 
@@ -55,7 +55,7 @@ def index():
     details = {}
     
 
-    # Create set of uniqe symbols in portfolio
+   
     for row in rows:
         symbol_sets.add(row['symbol'])
 
@@ -67,14 +67,14 @@ def index():
 
     for symbol in symbols:
 
-        # Count total number of shares of each symbol and add to count dictionary
+        
         result = db.execute("SELECT (SUM(PRICE*SHARES) / SUM(SHARES)) AS avg_cost, SUM(SHARES) AS total_shares FROM transactions WHERE user=:username and symbol=:symbol",
                             username=username, symbol=symbol)[0]
 
         count = result['total_shares']
         avg_cost = result['avg_cost']
 
-        # Lookup the price and name of each stock symbol from stock API
+        
         api = lookup(symbol)
 
         detail = {
@@ -90,7 +90,7 @@ def index():
 
         total += (api['price']*count)
 
-    # Calculate total value of stock portfolio
+    
     total += cash
     value = total - 20000 
 
@@ -144,7 +144,6 @@ def buy():
     else:
         return render_template("buy.html", cash=cash, date=date, username=username, name=name)
 
-
 @app.route("/check", methods=["GET"])
 def check():
 
@@ -183,35 +182,35 @@ def history():
 def login():
     """Log user in"""
 
-    # Forget any user_id
+    
     session.clear()
 
-    # User reached route via POST (as by submitting a form via POST)
+    
     if request.method == "POST":
 
-        # Ensure username was submitted
+        
         if not request.form.get("username"):
             return apology("must provide username", 403)
 
-        # Ensure password was submitted
+        
         elif not request.form.get("password"):
             return apology("must provide password", 403)
 
-        # Query database for username
+        
         rows = db.execute("SELECT * FROM users WHERE username = :username",
                           username=request.form.get("username"))
 
-        # Ensure username exists and password is correct
+        
         if len(rows) != 1 or not check_password_hash(rows[0]["hash"], request.form.get("password")):
             return apology("invalid username and/or password", 403)
 
-        # Remember which user has logged in
+        
         session["user_id"] = rows[0]["id"]
 
-        # Redirect user to home page
+        
         return redirect("/")
 
-    # User reached route via GET (as by clicking a link or via redirect)
+    
     else:
         return render_template("login.html")
 
@@ -220,10 +219,10 @@ def login():
 def logout():
     """Log user out"""
 
-    # Forget any user_id
+    
     session.clear()
 
-    # Redirect user to login form
+    
     return redirect("/")
 
 
@@ -252,74 +251,36 @@ def quote():
 @app.route("/watchlist", methods=["GET", "POST"])
 @login_required
 def watchlist():
+    userid = session["user_id"]
+    result = db.execute("SELECT username FROM users WHERE id = :userid", userid=userid)[0]
+    username = result['username']
+
+    def watchlist_page(username):
+        result = db.execute("SELECT symbol from Watchlist where username=:username", username=username)
+        result = [row['symbol'] for row in result]
+        print(result)
+        details = {}
+        symbols = []
+        for symbol in result:
+            symbols.append(symbol)
+            detail = lookup(symbol)
+            details[symbol] = detail
+
+        return render_template("watchlist.html", symbols=symbols, details=details)
+
+
     if request.method == "POST":
         symbol = request.form.get("symbol")
-
-        if not symbol or symbol.isalpha() == False:
-            return apology("Invalid stock symbol.", 400)
-
-        else:
-            symbol = symbol.upper()
-            quote = lookup(str(symbol))
-            if not quote:
-                return apology("Invalid stock symbol.", 400)
-            total = float(quote['price'])
-            return render_template("list.html", quote=quote, total=total)
+        cart = lookup(symbol)
+        if not cart:
+            return apology("That stock does not exist", 400)
+        
+        symbol = str(cart['symbol'])
+        result = db.execute("INSERT INTO watchlist VALUES(:username, :symbol)", symbol=symbol.upper(), username=username)
+        return watchlist_page(username)
 
     else:
-        return render_template("watchlist.html")
-
-
-
-@app.route("/list")
-@login_required
-def list():
-    userid = session["user_id"]
-    result = db.execute("SELECT username FROM Watchlist WHERE id = :userid", userid=userid)[0]
-    username = result['username']
-    rows = db.execute("SELECT * FROM Watchlist WHERE user = :username", username=username)
-
-    symbols = set()
-    symbol_sets =set()
-
-    for row in rows:
-        symbol_sets.add(row['symbol'])
-
-    details = {}
-    
-
-    # Create set of uniqe symbols in portfolio
-    for row in rows:
-        symbol_sets.add(row['symbol'])
-
-
-    
-        # Lookup the price and name of each stock symbol from stock API
-        api = lookup(symbol)
-
-        detail = {
-            'name':api['name'],
-            'price':api['price'],
-            'avg_cost':avg_cost,
-            'shares': count,
-            'total_cost': avg_cost*count,
-            'profit': (api['price']-avg_cost)*count
-        }
-
-        details[symbol] = detail
-
-        total += (api['price']*count)
-
-    # Calculate total value of stock portfolio
-    total += cash
-    value = total - 20000 
-
-    return render_template("list.html", symbols=symbols, cash=cash, total=total, username=username, name=name, value=value, details=details)
-
-
-
-
-
+        return watchlist_page(username)
 
 
 @app.route("/register", methods=["GET", "POST"])
@@ -411,6 +372,6 @@ def errorhandler(e):
     return apology(e.name, e.code)
 
 
-# Listen for errors
+
 for code in default_exceptions:
     app.errorhandler(code)(errorhandler)
